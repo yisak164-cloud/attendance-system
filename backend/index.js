@@ -12,12 +12,12 @@ import teachingRoutes from "./routes/teachingRoutes.js"
 import attendanceRoutes from "./routes/attendanceRoutes.js"
 import correctionRequestRoutes from "./routes/correctionRequestRoutes.js"
 import teacherAttendanceRoutes from "./routes/teacherAttendanceRoutes.js"
+import cookieParser from "cookie-parser"
 
 // Load the .env file FIRST, so every line below can read process.env
 dotenv.config()
 
-// Use Google's DNS locally (helps when the home network cannot resolve
-// MongoDB Atlas). In production the host handles DNS itself.
+
 if (!process.env.VERCEL) {
     dns.setServers(["8.8.8.8", "8.8.4.4"])
 }
@@ -27,10 +27,14 @@ const PORT = process.env.PORT || 3000
 
 DB()
 
-// Let the React app (running on a different port) call this API
-app.use(cors())
 
-// Let Express read JSON bodies sent by the frontend
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}))
+
+app.use(cookieParser())
+
 app.use(express.json())
 
 app.get("/", (req, res) => {

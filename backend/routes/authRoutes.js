@@ -95,10 +95,22 @@ router.post("/register", async (req,res)=>{
 
             )
 
-             res.status(200).json({
-            message: "Login successful",
-            token
-        });
+           res.cookie("token", token, {
+    httpOnly: true,
+    secure: false, 
+    sameSite: "lax",
+    maxAge: 60 * 60 * 1000
+})
+
+res.status(200).json({
+    message: "Login successful",
+    user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role
+    }
+})
 
 
 

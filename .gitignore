@@ -1,27 +1,8 @@
-# Dependencies - never commit these, they are reinstalled with "npm install"
 node_modules/
-
-# Environment variables - SECRETS. Never commit.
 .env
-.env.local
-.env.*.local
-
-# Build output
 dist/
-build/
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
 
-# Editor / OS files
-.vscode/*
-!.vscode/extensions.json
-.idea/
-.DS_Store
-Thumbs.db
 
-# Office temp lock files
-~$*
+
+
