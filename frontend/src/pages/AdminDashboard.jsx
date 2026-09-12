@@ -25,6 +25,49 @@ function AdminDashboard() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
+  const [attCourseId, setAttCourseId] = useState('')
+const [attDate, setAttDate] = useState('')
+
+const [enrollCourseId, setEnrollCourseId] = useState('')
+
+async function loadEnrollmentsView() {
+  setError('')
+  try {
+    const res = await api.get('/enrollments?courseId=' + enrollCourseId)
+    setEnrollments(res.data.enrollments)
+  } catch (err) {
+    setError(err.response?.data?.message || 'Something went wrong')
+  }
+}
+
+useEffect(() => {
+  if (enrollCourseId) {
+    loadEnrollmentsView()
+  } else {
+    setEnrollments([])
+  }
+}, [enrollCourseId])
+
+async function loadAttendanceView() {
+  setError('')
+  try {
+    let url = '/attendance/all?courseId=' + attCourseId
+    if (attDate) url += '&date=' + attDate
+    const res = await api.get(url)
+    setAttendance(res.data.attendance)
+  } catch (err) {
+    setError(err.response?.data?.message || 'Something went wrong')
+  }
+}
+
+useEffect(() => {
+  if (attCourseId) {
+    loadAttendanceView()
+  } else {
+    setAttendance([])
+  }
+}, [attCourseId, attDate])
+
   useEffect(() => {
     loadAll()
   }, [])
@@ -33,11 +76,10 @@ function AdminDashboard() {
     try {
       setUsers((await api.get('/auth/users')).data.users)
       setCourses((await api.get('/courses')).data.courses)
-      setEnrollments((await api.get('/enrollments')).data.enrollments)
-      setAssignments((await api.get('/teaching')).data.assignments)
+     setAssignments((await api.get('/teaching')).data.assignments)
       setRequests((await api.get('/correction-requests')).data.correctionRequests)
       setTeacherAttendance((await api.get('/teacher-attendance')).data.attendance)
-      setAttendance((await api.get('/attendance/all')).data.attendance)
+      
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong')
     }
@@ -57,19 +99,7 @@ function AdminDashboard() {
     }
   }
 
-  async function decideRequest(requestId, decision) {
-    setError('')
-    setMessage('')
-
-    try {
-      await api.put('/correction-requests/' + requestId, { status: decision })
-      setMessage('Request ' + decision + '.')
-      loadAll()
-    } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong')
-    }
-  }
-
+  
   // Promote or demote an existing user
   async function changeRole(userId, newRole) {
     setError('')
@@ -108,7 +138,7 @@ function AdminDashboard() {
     ['teaching', 'Teaching'],
     ['corrections', 'Corrections'],
     ['teacherAtt', 'Teacher Attendance'],
-    ['attendance', 'All Attendance']
+    ['attendance', 'Student Attendance Records']
   ]
 
   return (
@@ -284,69 +314,40 @@ function AdminDashboard() {
 
         {/* ---------------- ENROLLMENTS ---------------- */}
         {tab === 'enrollments' && (
-          <div>
-            <div className="card">
-              <h3>Enroll a student in a course</h3>
+         <div className="card">
+  <h3>Students enrolled in a course</h3>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  send('/enrollments', newEnrollment, 'Student enrolled.')
-                }}
-              >
-                <div className="row">
-                  <div className="field">
-                    <label>Student</label>
-                    <select
-                      value={newEnrollment.studentId}
-                      onChange={(e) => setNewEnrollment({ ...newEnrollment, studentId: e.target.value })}
-                      required
-                    >
-                      <option value="">-- select --</option>
-                      {students.map((student) => (
-                        <option key={student._id} value={student._id}>{student.fullName}</option>
-                      ))}
-                    </select>
-                  </div>
+  <div className="field">
+    <label>Course</label>
+    <select value={enrollCourseId} onChange={(e) => setEnrollCourseId(e.target.value)}>
+      <option value="">-- select a course --</option>
+      {courses.map((course) => (
+        <option key={course._id} value={course._id}>
+          {course.course} ({course.classType})
+        </option>
+      ))}
+    </select>
+  </div>
 
-                  <div className="field">
-                    <label>Course</label>
-                    <select
-                      value={newEnrollment.courseId}
-                      onChange={(e) => setNewEnrollment({ ...newEnrollment, courseId: e.target.value })}
-                      required
-                    >
-                      <option value="">-- select --</option>
-                      {courses.map((course) => (
-                        <option key={course._id} value={course._id}>{course.course} ({course.classType})</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+  {enrollCourseId && enrollments.length === 0 && <p className="empty">No students enrolled yet.</p>}
 
-                <button type="submit" className="btn-main">Enroll</button>
-              </form>
-            </div>
-
-            <div className="card">
-              <h3>All enrollments ({enrollments.length})</h3>
-
-              <table>
-                <thead>
-                  <tr><th>Student</th><th>Course</th><th>Type</th></tr>
-                </thead>
-                <tbody>
-                  {enrollments.map((enrollment) => (
-                    <tr key={enrollment._id}>
-                      <td>{enrollment.student ? enrollment.student.fullName : '-'}</td>
-                      <td>{enrollment.course ? enrollment.course.course : '-'}</td>
-                      <td>{enrollment.course ? enrollment.course.classType : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+  {enrollments.length > 0 && (
+    <table>
+      <thead>
+        <tr><th>Student</th><th>Course</th><th>Type</th></tr>
+      </thead>
+      <tbody>
+        {enrollments.map((enrollment) => (
+          <tr key={enrollment._id}>
+            <td>{enrollment.student ? enrollment.student.fullName : '-'}</td>
+            <td>{enrollment.course ? enrollment.course.course : '-'}</td>
+            <td>{enrollment.course ? enrollment.course.classType : '-'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</div>
         )}
 
         {/* ---------------- TEACHING ---------------- */}
@@ -424,60 +425,47 @@ function AdminDashboard() {
         )}
 
         {/* ---------------- CORRECTIONS ---------------- */}
-        {tab === 'corrections' && (
-          <div className="card">
-            <h3>Correction requests ({requests.length})</h3>
+       {tab === 'corrections' && (
+  <div className="card">
+    <h3>Correction requests ({requests.length})</h3>
+    <p className="subtitle">
+      Viewing for oversight — approvals are handled by the recording teacher.
+    </p>
 
-            {requests.length === 0 && <p className="empty">No requests yet.</p>}
+    {requests.length === 0 && <p className="empty">No requests yet.</p>}
 
-            {requests.length > 0 && (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th><th>Course</th><th>Asked for</th>
-                    <th>Reason</th><th>Status</th><th>Decide</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((request) => (
-                    <tr key={request._id}>
-                      <td>{request.student ? request.student.fullName : '-'}</td>
-                      <td>
-                        {request.attendance && request.attendance.course
-                          ? request.attendance.course.course
-                          : '-'}
-                      </td>
-                      <td>{request.requestedStatus}</td>
-                      <td>{request.reason}</td>
-                      <td><span className={'status ' + request.status}>{request.status}</span></td>
-                      <td>
-                        {request.status === 'pending' ? (
-                          <span>
-                            <button
-                              className="btn-small"
-                              onClick={() => decideRequest(request._id, 'approved')}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="btn-danger"
-                              onClick={() => decideRequest(request._id, 'rejected')}
-                            >
-                              Reject
-                            </button>
-                          </span>
-                        ) : (
-                          <span className="empty">done</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
+    {requests.length > 0 && (
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th><th>Teacher</th><th>Course</th><th>Asked for</th>
+            <th>Reason</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {requests.map((request) => (
+            <tr key={request._id}>
+              <td>{request.student ? request.student.fullName : '-'}</td>
+              <td>
+                {request.attendance && request.attendance.recordedBy
+                  ? request.attendance.recordedBy.fullName
+                  : '-'}
+              </td>
+              <td>
+                {request.attendance && request.attendance.course
+                  ? request.attendance.course.course
+                  : '-'}
+              </td>
+              <td>{request.requestedStatus}</td>
+              <td>{request.reason}</td>
+              <td><span className={'status ' + request.status}>{request.status}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+)}
         {/* ---------------- TEACHER ATTENDANCE ---------------- */}
         {tab === 'teacherAtt' && (
           <div>
@@ -568,36 +556,59 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* ---------------- ALL ATTENDANCE ---------------- */}
+        {/* ---------------- STUDENT ATTENDANCE ---------------- */}
         {tab === 'attendance' && (
-          <div className="card">
-            <h3>All student attendance ({attendance.length})</h3>
+  <div className="card">
+    <h3>All student attendance</h3>
 
-            {attendance.length === 0 && <p className="empty">Nothing recorded yet.</p>}
+    <div className="field">
+      <label>Course</label>
+      <select value={attCourseId} onChange={(e) => setAttCourseId(e.target.value)}>
+        <option value="">-- select a course --</option>
+        {courses.map((course) => (
+          <option key={course._id} value={course._id}>
+            {course.course} ({course.classType})
+          </option>
+        ))}
+      </select>
+    </div>
 
-            {attendance.length > 0 && (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th><th>Course</th><th>Date</th>
-                    <th>Status</th><th>Recorded by</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendance.map((record) => (
-                    <tr key={record._id}>
-                      <td>{record.student ? record.student.fullName : '-'}</td>
-                      <td>{record.course ? record.course.course : '-'}</td>
-                      <td>{new Date(record.date).toLocaleDateString()}</td>
-                      <td><span className={'status ' + record.status}>{record.status}</span></td>
-                      <td>{record.recordedBy ? record.recordedBy.fullName : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
+    {attCourseId && (
+      <div className="field">
+        <label>Date (optional)</label>
+        <input
+          type="date"
+          value={attDate}
+          onChange={(e) => setAttDate(e.target.value)}
+        />
+      </div>
+    )}
+
+    {attCourseId && attendance.length === 0 && <p className="empty">Nothing recorded yet.</p>}
+
+    {attendance.length > 0 && (
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th><th>Course</th><th>Date</th>
+            <th>Status</th><th>Recorded by</th>
+          </tr>
+        </thead>
+        <tbody>
+          {attendance.map((record) => (
+            <tr key={record._id}>
+              <td>{record.student ? record.student.fullName : '-'}</td>
+              <td>{record.course ? record.course.course : '-'}</td>
+              <td>{new Date(record.date).toLocaleDateString()}</td>
+              <td><span className={'status ' + record.status}>{record.status}</span></td>
+              <td>{record.recordedBy ? record.recordedBy.fullName : '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+)}
       </div>
     </div>
   )

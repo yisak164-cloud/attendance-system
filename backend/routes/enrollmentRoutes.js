@@ -115,7 +115,15 @@ router.get(
 // Admin: see every enrollment in the system
 router.get("/", authMiddleware, authorize("admin"), async (req, res) => {
     try {
-        const enrollments = await Enrollment.find()
+        const { courseId } = req.query
+
+        const filter = {}
+
+        if (courseId) {
+            filter.course = courseId
+        }
+
+        const enrollments = await Enrollment.find(filter)
             .sort({ createdAt: -1 })
             .populate("student", "fullName email")
             .populate("course", "course classType")

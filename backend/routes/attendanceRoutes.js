@@ -226,10 +226,22 @@ router.put("/:attendanceId", authMIddleware, authorize("teacher"), async (req,re
 })
 
 
-// Admin: see all student attendance in the system
+
 router.get("/all", authMiddleware, authorize("admin"), async (req, res) => {
     try {
-        const attendance = await Attendance.find()
+        const { courseId, date } = req.query
+
+        const filter = {}
+
+        if (courseId) {
+            filter.course = courseId
+        }
+
+        if (date) {
+            filter.date = new Date(`${date}T00:00:00.000Z`)
+        }
+
+        const attendance = await Attendance.find(filter)
             .sort({ date: -1 })
             .populate("student", "fullName email")
             .populate("course", "course classType")

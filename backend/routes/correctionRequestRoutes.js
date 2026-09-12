@@ -82,19 +82,31 @@ if (existingRequest) {
 router.get(
     "/",
     authMiddleware,
-    authorize("admin"),
+    authorize("teacher", "admin"),
     async (req, res) => {
         try {
-            const correctionRequests = await CorrectionRequest.find()
-                .sort({ createdAt: -1 })
-                .populate("student", "fullName email")
-                .populate({
-                    path: "attendance",
-                    populate: {
-                        path: "course",
-                        select: "course classType"
-                    }
-                });
+            let query = {};
+
+            if (req.user.role === "teacher") {
+                const myAttendanceRecords = await Attendance.find({
+                    recordedBy: req.user.userId
+                }).select("_id");
+
+                const myAttendanceIds = myAttendanceRecords.map(a => a._id);
+
+                query = { attendance: { $in: myAttendanceIds } };
+            }
+
+          const correctionRequests = await CorrectionRequest.find(query)
+    .sort({ createdAt: -1 })
+    .populate("student", "fullName email")
+    .populate({
+        path: "attendance",
+        populate: [
+            { path: "course", select: "course classType" },
+            { path: "recordedBy", select: "fullName email" }
+        ]
+    });
 
             return res.status(200).json({
                 correctionRequests
@@ -105,11 +117,10 @@ router.get(
 
             return res.status(500).json({
                 message: "Server error"
-            });
+            })
         }
     }
-);
-
+)
 router.get(
     "/my-requests",
     authMiddleware,
@@ -142,69 +153,74 @@ router.get(
     }
 );
 
-router.put("/:requestId", authMiddleware, authorize("admin"), async (req,res)=>{
+router.put("/:requestId", authMiddleware, authorize("teacher"), async (req,res)=>{
 
     try {
         const { requestId } = req.params
-    const { status } = req.body
+        const { status } = req.body
 
-      if (!status) {
-                return res.status(400).json({
-                    message: "Status is required"
-                });
-            }
+        if (!status) {
+            return res.status(400).json({
+                message: "Status is required"
+            });
+        }
 
-             if (!["approved", "rejected"].includes(status)) {
-                return res.status(400).json({
-                    message: "Status must be approved or rejected"
-                });
-            }
+        if (!["approved", "rejected"].includes(status)) {
+            return res.status(400).json({
+                message: "Status must be approved or rejected"
+            });
+        }
 
-             const correctionRequest = await CorrectionRequest.findById(requestId)
+        const correctionRequest = await CorrectionRequest.findById(requestId)
 
-              if (!correctionRequest) {
-                return res.status(404).json({
-                    message: "Correction request not found"
-                });
-            }
+        if (!correctionRequest) {
+            return res.status(404).json({
+                message: "Correction request not found"
+            });
+        }
 
-            if (correctionRequest.status !== "pending") {
-                return res.status(400).json({
-                    message: "This correction request has already been processed"
-                });
-            }
+        const attendance = await Attendance.findById(correctionRequest.attendance)
 
-            if (status === "approved") {
-                const attendance = await Attendance.findById(correctionRequest.attendance)
-
-                 if (!attendance) {
-                    return res.status(404).json({
-                        message: "Attendance record not found"
-                    })
-                }
-                attendance.status = correctionRequest.requestedStatus
-
-                await attendance.save()
-            }
-
-            correctionRequest.status = status
-
-            await correctionRequest.save()
-
-
-            return res.status(200).json({
-                message: `Correction request ${status} successfully`,
-                correctionRequest
+        if (!attendance) {
+            return res.status(404).json({
+                message: "Attendance record not found"
             })
+        }
+
+        if (attendance.recordedBy.toString() !== req.user.userId) {
+            return res.status(403).json({
+                message: "You can only decide on correction requests for attendance you recorded"
+            });
+        }
+
+        if (correctionRequest.status !== "pending") {
+            return res.status(400).json({
+                message: "This correction request has already been processed"
+            });
+        }
+
+        if (status === "approved") {
+            attendance.status = correctionRequest.requestedStatus
+            await attendance.save()
+        }
+
+        correctionRequest.status = status
+
+        await correctionRequest.save()
+
+
+        return res.status(200).json({
+            message: `Correction request ${status} successfully`,
+            correctionRequest
+        })
 
     } catch (error) {
-          console.error(error);
+        console.error(error);
 
-            return res.status(500).json({
-                message: "Server error"
-            })
+        return res.status(500).json({
+            message: "Server error"
+        })
     }
-            
 
 })
 

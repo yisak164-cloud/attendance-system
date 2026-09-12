@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api from '../api'
+import { useAuth } from '../context/AuthContext'
 
 
 function Login() {
@@ -14,15 +16,15 @@ function Login() {
 
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const {login} = useAuth()
 
-  /
+  
   async function handleLogin(event) {
     event.preventDefault()
     setError('')
 
     try {
-      const response = await api.post('/auth/login', { email, password })
-         const user = response.data.user
+      const user= await login(email, password)
 
      
       navigate('/' + user.role)

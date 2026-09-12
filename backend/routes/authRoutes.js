@@ -8,6 +8,30 @@ import authorize from "../middleware/roleMiddleware.js";
 
 const router = express.Router()
 
+const isProd = process.env.NODE_ENV === "production"
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax"
+}
+
+function generateAccessToken(user) {
+    return jwt.sign(
+        { userId: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "15m" }
+    )
+}
+
+function generateRefreshToken(user) {
+    return jwt.sign(
+        { userId: user._id },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: "7d" }
+    )
+}
+
 router.post("/register", async (req,res)=>{
      try {
          const { fullName, email, password } = req.body
@@ -83,23 +107,21 @@ router.post("/register", async (req,res)=>{
             });
         }
 
-        const token = jwt.sign(
-            {
-                userId:user._id,
-                role:user.role
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "1h"
-            }
+        const accessToken = generateAccessToken(user)
+const refreshToken = generateRefreshToken(user)
 
-            )
+user.refreshToken = refreshToken
+await user.save()
 
-           res.cookie("token", token, {
-    httpOnly: true,
-    secure: false, 
-    sameSite: "lax",
-    maxAge: 60 * 60 * 1000
+res.cookie("token", accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000
+})
+
+res.cookie("refreshToken", refreshToken, {
+    ...cookieOptions,
+    path: "/api/auth/refresh",
+    maxAge: 7 * 24 * 60 * 60 * 1000
 })
 
 res.status(200).json({
@@ -122,6 +144,42 @@ res.status(200).json({
         });
     }
   })
+
+  router.post("/refresh", async (req, res) => {
+    try {
+        const token = req.cookies.refreshToken
+
+        if (!token) {
+            return res.status(401).json({ message: "No refresh token" })
+        }
+
+        let decoded
+        try {
+            decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET)
+        } catch {
+            return res.status(401).json({ message: "Invalid refresh token" })
+        }
+
+        const user = await User.findById(decoded.userId)
+
+        if (!user || user.refreshToken !== token) {
+            return res.status(401).json({ message: "Refresh token revoked" })
+        }
+
+        const accessToken = generateAccessToken(user)
+
+        res.cookie("token", accessToken, {
+            ...cookieOptions,
+            maxAge: 15 * 60 * 1000
+        })
+
+        res.status(200).json({ message: "Token refreshed" })
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Server error" })
+    }
+})
 
   router.get("/me", authMIddleware , async (req,res)=> {
     res.json({
@@ -263,6 +321,45 @@ router.patch("/users/:userId/role", authMIddleware, authorize("admin"), async (r
 
         return res.status(500).json({ message: "Server error" })
     }
+})
+
+router.patch("/profile", authMIddleware, async (req, res) => {
+  try {
+    const { currentPassword, email, newPassword } = req.body
+
+    if (!currentPassword) {
+      return res.status(400).json({ message: "Current password is required" })
+    }
+
+    const user = await User.findById(req.user.userId)
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password)
+
+    if (!passwordMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" })
+    }
+
+    if (email) user.email = email
+    if (newPassword) user.password = await bcrypt.hash(newPassword, 10)
+
+    await user.save()
+
+    res.status(200).json({
+      message: "Profile updated",
+      user: { id: user._id, fullName: user.fullName, email: user.email, role: user.role }
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "Server error" })
+  }
+})
+
+router.post("/logout", authMIddleware, async (req, res) => {
+    await User.findByIdAndUpdate(req.user.userId, { refreshToken: null })
+
+    res.clearCookie("token", { ...cookieOptions})
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/api/auth/refresh" })
+
+    res.status(200).json({ message: "Logged out" })
 })
 
 export default router

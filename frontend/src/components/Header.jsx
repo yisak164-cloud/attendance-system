@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom'
-import { logout } from '../api.js'
+import { useAuth } from '../context/AuthContext.jsx'
+import {UserPen} from 'lucide-react'
 
-// The bar at the top of every dashboard.
+
 function Header({ title, role }) {
   const navigate = useNavigate()
+   const { logout } = useAuth()
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     navigate('/')
   }
 
@@ -16,6 +18,9 @@ function Header({ title, role }) {
       <div className="header-right">
         <span className="role-tag">{role}</span>
         <button onClick={handleLogout} className="btn-logout">Logout</button>
+        <button onClick={() => navigate('/profile')} className="btn-profile">
+          <UserPen />
+        </button>
       </div>
     </header>
   )

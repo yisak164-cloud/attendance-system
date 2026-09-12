@@ -1,31 +1,27 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { getUser } from './api.js'
-
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Login from './pages/Login.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import TeacherDashboard from './pages/TeacherDashboard.jsx'
 import StudentDashboard from './pages/StudentDashboard.jsx'
+import Profile from './components/Profile.jsx'
 
-// Wraps a page so only the right role can open it.
-// If you are not logged in, or you are the wrong role, you get sent to login.
-function ProtectedRoute({ role, children }) {
-  const user = getUser()
 
-  if (!user) {
-    return <Navigate to="/" />
-  }
 
-  if (user.role !== role) {
-    return <Navigate to="/" />
-  }
-
-  return children
-}
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+
+      <Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
 
       <Route
         path="/admin"
