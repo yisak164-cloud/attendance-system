@@ -17,8 +17,10 @@ api.interceptors.response.use(
       try {
         await api.post("/auth/refresh")
         return api(original)
-      } catch {
-        window.location.href = "/"
+      }catch {
+        if (window.location.pathname !== "/") {
+          window.location.href = "/"
+        }
       }
     }
 
