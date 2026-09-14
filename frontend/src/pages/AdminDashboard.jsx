@@ -314,6 +314,57 @@ useEffect(() => {
 
         {/* ---------------- ENROLLMENTS ---------------- */}
         {tab === 'enrollments' && (
+      {tab === 'enrollments' && (
+  <div>
+    <div className="card">
+      <h3>Enroll a student in a course</h3>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          send('/enrollments', newEnrollment, 'Student enrolled.')
+        }}
+      >
+        <div className="row">
+          <div className="field">
+            <label>Student</label>
+            <select
+              value={newEnrollment.studentId}
+              onChange={(e) => setNewEnrollment({ ...newEnrollment, studentId: e.target.value })}
+              required
+            >
+              <option value="">-- select --</option>
+              {students.map((student) => (
+                <option key={student._id} value={student._id}>{student.fullName}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label>Course</label>
+            <select
+              value={newEnrollment.courseId}
+              onChange={(e) => setNewEnrollment({ ...newEnrollment, courseId: e.target.value })}
+              required
+            >
+              <option value="">-- select --</option>
+              {courses.map((course) => (
+                <option key={course._id} value={course._id}>{course.course} ({course.classType})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" className="btn-main">Enroll</button>
+      </form>
+    </div>
+
+    <div className="card">
+      <h3>Students enrolled in a course</h3>
+      {/* your existing filter card — unchanged */}
+    </div>
+  </div>
+)}
          <div className="card">
   <h3>Students enrolled in a course</h3>
 
