@@ -313,8 +313,8 @@ useEffect(() => {
         )}
 
         {/* ---------------- ENROLLMENTS ---------------- */}
-        {tab === 'enrollments' && (
-      {tab === 'enrollments' && (
+       {/* ---------------- ENROLLMENTS ---------------- */}
+{tab === 'enrollments' && (
   <div>
     <div className="card">
       <h3>Enroll a student in a course</h3>
@@ -361,46 +361,40 @@ useEffect(() => {
 
     <div className="card">
       <h3>Students enrolled in a course</h3>
-      {/* your existing filter card — unchanged */}
+
+      <div className="field">
+        <label>Course</label>
+        <select value={enrollCourseId} onChange={(e) => setEnrollCourseId(e.target.value)}>
+          <option value="">-- select a course --</option>
+          {courses.map((course) => (
+            <option key={course._id} value={course._id}>
+              {course.course} ({course.classType})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {enrollCourseId && enrollments.length === 0 && <p className="empty">No students enrolled yet.</p>}
+
+      {enrollments.length > 0 && (
+        <table>
+          <thead>
+            <tr><th>Student</th><th>Course</th><th>Type</th></tr>
+          </thead>
+          <tbody>
+            {enrollments.map((enrollment) => (
+              <tr key={enrollment._id}>
+                <td>{enrollment.student ? enrollment.student.fullName : '-'}</td>
+                <td>{enrollment.course ? enrollment.course.course : '-'}</td>
+                <td>{enrollment.course ? enrollment.course.classType : '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   </div>
 )}
-         <div className="card">
-  <h3>Students enrolled in a course</h3>
-
-  <div className="field">
-    <label>Course</label>
-    <select value={enrollCourseId} onChange={(e) => setEnrollCourseId(e.target.value)}>
-      <option value="">-- select a course --</option>
-      {courses.map((course) => (
-        <option key={course._id} value={course._id}>
-          {course.course} ({course.classType})
-        </option>
-      ))}
-    </select>
-  </div>
-
-  {enrollCourseId && enrollments.length === 0 && <p className="empty">No students enrolled yet.</p>}
-
-  {enrollments.length > 0 && (
-    <table>
-      <thead>
-        <tr><th>Student</th><th>Course</th><th>Type</th></tr>
-      </thead>
-      <tbody>
-        {enrollments.map((enrollment) => (
-          <tr key={enrollment._id}>
-            <td>{enrollment.student ? enrollment.student.fullName : '-'}</td>
-            <td>{enrollment.course ? enrollment.course.course : '-'}</td>
-            <td>{enrollment.course ? enrollment.course.classType : '-'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )}
-</div>
-        )}
-
         {/* ---------------- TEACHING ---------------- */}
         {tab === 'teaching' && (
           <div>
