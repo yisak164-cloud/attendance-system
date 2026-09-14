@@ -187,15 +187,16 @@ function TeacherDashboard() {
               <h3>Take Attendance</h3>
 
               <form onSubmit={submitAttendance}>
-                <div className="field">
-                  <label>Date</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                  />
-                </div>
+               <div className="field">
+  <label>Date</label>
+  <input
+    type="date"
+    value={date}
+    onChange={(e) => setDate(e.target.value)}
+    max={new Date().toISOString().split('T')[0]}
+    required
+  />
+</div>
 
                 <table>
                   <thead>
