@@ -77,6 +77,15 @@ if (uniqueStudentIds.size !== submittedStudentIds.length) {
 }
 
 const attendanceDate = new Date(`${date}T00:00:00.000Z`)
+
+const today = new Date()
+const todayDateOnly = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+
+if (attendanceDate > todayDateOnly) {
+    return res.status(400).json({
+        message: "Cannot record attendance for a future date"
+    });
+}
                 
 const attendanceRecords = attendance.map((record) => ({
     student: record.studentId,
